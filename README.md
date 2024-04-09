@@ -1,11 +1,10 @@
 # Lost and Found Items Platform for College Students
 
 
-
-
 <table>
   <tr>
-    <td align="right"><img src="https://github.com/raushan6760/Lost_And_Found/assets/101269000/69056047-20aa-4eff-a0aa-4e7f5b255b48c" alt="Image"></td>
+    <td align="center"><img src="https://github.com/raushan6760/Lost_And_Found/assets/101269000/69056047-20aa-4eff-a0aa-4e7f5b255b48c" alt="demo Image 2"></td>
+     <td align="center"><img src="https://github.com/raushan6760/Lost_And_Found/assets/101269000/4817c357-7646-4fa6-99f2-1bd07f3f3129" alt="demo Image 1"></td>
   </tr>
 </table>
 

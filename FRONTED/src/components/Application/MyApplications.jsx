@@ -13,10 +13,11 @@ const MyApplications = () => {
   // const [validate, setvalidate] = useState(false);
 
   const { isAuthorized } = useContext(Context);
- 
+
   const navigateTo = useNavigate();
 
   const [dynamicObject, setdynamicobject] = useState({});
+  const [validateitem, setvalidateitem] = useState({});
 
   // console.log(validate);
 
@@ -48,31 +49,33 @@ const MyApplications = () => {
     fetchData();
   }, [isAuthorized]);
 
-  useEffect(() => {
-    
-    applications.map((element) => {
-      console.log("inside useEffect function ",element);
-      if (element.validate === true) {
-        console.log(
-          "validation true of jobseeker",
-          element.applicantID.user,
-          element.employerID.user
-        );
-        const dynamickey = `validate${element.applicantID.user}_${element.employerID.user}`;
-        setdynamicobject((prevState) => ({
-          ...prevState,
-          [dynamickey]: true,
-        }));
-      }
-    });
-  }, [applications],[isAuthorized]);
+  useEffect(
+    () => {
+      applications.map((element) => {
+        console.log("inside useEffect function ", element);
+        if (element.validate === true) {
+          console.log(
+            "validation true of jobseeker",
+            element.applicantID.user,
+            element.employerID.user
+          );
+          const dynamickey = `validate${element.applicantID.user}_${element.employerID.user}`;
+          setdynamicobject((prevState) => ({
+            ...prevState,
+            [dynamickey]: true,
+          }));
+        }
+      });
+    },
+    [applications],
+    [isAuthorized]
+  );
 
-  useEffect(()=>{
+  useEffect(() => {
     if (!isAuthorized) {
       navigateTo("/");
     }
-  },[isAuthorized])
- 
+  }, [isAuthorized]);
 
   const deleteApplication = (id) => {
     try {
@@ -93,11 +96,14 @@ const MyApplications = () => {
 
   const employeedeleteApplication = (id) => {
     try {
-      console.log("not validate coming in delete")
+      console.log("not validate coming in delete");
       axios
-        .delete(`http://localhost:4000/api/v1/application/deleteemployee/${id}`, {
-          withCredentials: true,
-        })
+        .delete(
+          `http://localhost:4000/api/v1/application/deleteemployee/${id}`,
+          {
+            withCredentials: true,
+          }
+        )
         .then((res) => {
           toast.success(res.data.message);
           setApplications((prevApplication) =>
@@ -118,43 +124,49 @@ const MyApplications = () => {
     setModalOpen(false);
   };
 
+  const validateApplication = async (id) => {
+    try {
+      console.log("working ");
+      const applicationId = prompt("Please enter ItemId");
+      if (!applicationId) return; // Exit if the user cancels or does not provide an ID
 
-const validateApplication = async (id) => {
-  try {
-    console.log("working ")
-    const applicationId = prompt("Please enter ItemId");
-    if (!applicationId) return; // Exit if the user cancels or does not provide an ID
+      console.log("Application ID:", applicationId);
+      const validatekey = `validate${applicationId}`;
+      localStorage.setItem(validatekey,true)
+      setvalidateitem((prevState) => ({
+        ...prevState,
+        [validatekey]: true,
+      }));
+      // Find the application with the matching ID
+      const application = applications.find((element) => element._id === id);
+      if (!application) {
+        console.error("Application not found");
+        return;
+      }
 
-    console.log("Application ID:", applicationId);
+      console.log("Employer ID:", application.name, application.phone);
 
-    // Find the application with the matching ID
-    const application = applications.find((element) => element._id === id);
-    if (!application) {
-      console.error("Application not found");
-      return;
+      // Make a PATCH request to update the application
+      const response = await axios.put(
+        `http://localhost:4000/api/v1/application/application/${applicationId}`,
+        {},
+        { withCredentials: true }
+      );
+
+      console.log(
+        "Application updated successfully:",
+        response.data.application
+      );
+    } catch (error) {
+      console.error("Error updating application:", error);
+      // Handle errors gracefully, e.g., display a toast message to the user
+      toast.error("An error occurred while updating the application.");
     }
-
-    console.log("Employer ID:", application.name, application.phone);
-
-    // Make a PATCH request to update the application
-    const response = await axios.put(
-      `http://localhost:4000/api/v1/application/application/${applicationId}`,
-      {},
-      { withCredentials: true }
-    );
-
-    console.log("Application updated successfully:", response.data.application);
-  } catch (error) {
-    console.error("Error updating application:", error);
-    // Handle errors gracefully, e.g., display a toast message to the user
-    toast.error("An error occurred while updating the application.");
-  }
-};
-
+  };
 
   const notValidateApplication = (id) => {
-    console.log("clicked not validate ",id);
-    employeedeleteApplication(id)
+    console.log("clicked not validate ", id);
+    employeedeleteApplication(id);
   };
 
   return (
@@ -183,7 +195,7 @@ const validateApplication = async (id) => {
         </div>
       ) : (
         <div className="container">
-          <h1>Applications From Job Seekers</h1>
+          <h1>Applications From Lost Items</h1>
           {applications.length <= 0 ? (
             <>
               <h4>No Response Found</h4>
@@ -195,7 +207,7 @@ const validateApplication = async (id) => {
                   // validate={validate}
                   verify={() => validateApplication(element._id)}
                   notverify={() => notValidateApplication(element._id)}
-                  
+                  validateitem={validateitem}
                   element={element}
                   key={element._id}
                   openModal={openModal}
@@ -221,9 +233,9 @@ const JobSeekerCard = ({
   dynamicObject,
 }) => {
   const key = `validate${element.applicantID.user}_${element.employerID.user}`;
-const[phone,setphone]=useState("")
+  const [phone, setphone] = useState("");
 
-   axios
+  axios
     .get(
       `http://localhost:4000/api/v1/user/getemployee/${element.employerID.user}`,
       {
@@ -231,22 +243,16 @@ const[phone,setphone]=useState("")
       }
     )
     .then((response) => {
-      console.log(
-        "employee deatials successfully:",
-        response.data.empoloyee
-      );
+      console.log("employee deatials successfully:", response.data.empoloyee);
       setphone(response.data.empoloyee.phone);
     })
     .catch((error) => {
       console.error("Error updating application:", error);
     });
-  
-  
+
   let iskey = false;
   iskey = dynamicObject.hasOwnProperty(key);
-  console.log("key  from job ", iskey,phone);
-  
-  
+  console.log("key  from job ", iskey, phone);
 
   return (
     <>
@@ -262,7 +268,7 @@ const[phone,setphone]=useState("")
             <span>Phone:</span> {element.phone}
           </p>
           <p>
-          <span>Question : </span> {element.question} <br />
+            <span>Question : </span> {element.question} <br />
             <span>Answer:</span> {element.answer}
           </p>
           <p>
@@ -271,28 +277,46 @@ const[phone,setphone]=useState("")
 
           {element.validate && iskey ? (
             <>
-            <button style={{ backgroundColor: "green", width: "145px", height:"35x"}}>
-              Approved
-            </button>
-            <p style={{color:"blue"}}>Here is the Number : <b>{phone}</b> , You can contact </p>
+              <button
+                style={{
+                  backgroundColor: "green",
+                  width: "145px",
+                  height: "35x",
+                }}
+              >
+                Approved
+              </button>
+              <p style={{ color: "blue" }}>
+                Here is the Number : <b>{phone}</b> , You can contact{" "}
+              </p>
             </>
           ) : (
             <>
-            <button style={{ backgroundColor: "red", width: "145px", height:"35x"}}>
-             <b>pending state</b> 
-            </button>
-            <p style={{color:"blue"}}>wait for Approval then you can get his number  </p>
+              <button
+                style={{
+                  backgroundColor: "red",
+                  width: "145px",
+                  height: "35x",
+                }}
+              >
+                <b>pending state</b>
+              </button>
+              <p style={{ color: "blue" }}>
+                wait for Approval then you can get his number{" "}
+              </p>
             </>
           )}
         </div>
         <div className="resume">
-        { element && element.imgsource ? 
-          <img
-            src={element.imgsource}
-            alt="resume"
-            onClick={() => openModal(element.imgsource)}
-          /> :""
-        }
+          {element && element.imgsource ? (
+            <img
+              src={element.imgsource}
+              alt="resume"
+              onClick={() => openModal(element.imgsource)}
+            />
+          ) : (
+            ""
+          )}
         </div>
         <div className="btn_area">
           <button onClick={() => deleteApplication(element._id)}>
@@ -304,18 +328,31 @@ const[phone,setphone]=useState("")
   );
 };
 
-const EmployerCard = ({ element, openModal, verify, notverify, 
+const EmployerCard = ({
+  element,
+  openModal,
+  verify,
+  notverify,
+  validateitem,
 }) => {
   // console.log("verify in employe",verify)
   // console.log("validate", validate);
   // console.log("validate in employe",validate)
+
+  let itemkey = `validate${element._id}`;
+  let isvalidate = localStorage.getItem(`validate${element._id}`)
+  let isvalidates = false;
+
+  isvalidates = validateitem.hasOwnProperty(itemkey);
+  console.log("key  from validate ", isvalidate,isvalidates);
+
   return (
     <>
       <div className="job_seeker_card">
         <div className="detail">
-        {/* <p> */}
+          {/* <p> */}
           <h4>ITEM ID :{element._id} </h4>
-        {/* </p> */}
+          {/* </p> */}
           <p>
             <span>Name:</span> {element.name}
           </p>
@@ -326,36 +363,40 @@ const EmployerCard = ({ element, openModal, verify, notverify,
             <span>Phone:</span> {element.phone}
           </p>
           <p>
-          <span>Question Asked By You  : </span> {element.question} <br />
+            <span>Question Asked By You : </span> {element.question} <br />
             <span>Answer of your question:</span> {element.answer}
           </p>
           <p>
             <span>description:</span> {element.description}
           </p>
 
+          <h5 style={{ color: "blue" }}>
+            Is Validated :{(isvalidate || isvalidates) ? "YES" : "NO"}
+          </h5>
+
           <button
-          
             onClick={() => verify(element._id)}
-            style={{ backgroundColor: "green", width: "145px" , height:"35x"}}
+            style={{ backgroundColor: "green", width: "145px", height: "35x" }}
           >
-            <b>Validate{" "}</b>
+            <b>Validate </b>
           </button>
           <button
-          onClick={() => notverify(element._id)}
-            style={{ backgroundColor: "red", width: "145px" , height:"35x"}}
-            
+            onClick={() => notverify(element._id)}
+            style={{ backgroundColor: "red", width: "145px", height: "35x" }}
           >
-             <b>Delete Response{" "}</b> 
+            <b>Delete Response </b>
           </button>
         </div>
         <div className="resume">
-        { element && element.imgsource ? 
-          <img
-            src={element.imgsource}
-            alt="resume"
-            onClick={() => openModal(element.imgsource)}
-          /> :""
-        }
+          {element && element.imgsource ? (
+            <img
+              src={element.imgsource}
+              alt="resume"
+              onClick={() => openModal(element.imgsource)}
+            />
+          ) : (
+            ""
+          )}
         </div>
       </div>
     </>
